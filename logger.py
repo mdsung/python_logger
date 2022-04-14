@@ -8,6 +8,34 @@ from dotenv import load_dotenv
 load_dotenv(verbose=True)
 GMAIL_USERNAME = os.getenv("GMAIL_USERNAME")
 GMAIL_PASSWORD = os.getenv("GMAIL_PASSWORD")
+KAKAO_TOKEN = os.getenv("KAKAO_TOKEN")
+
+
+class KakaoHandler(logging.handlers.HTTPHandler):
+    def __init__(self, token):
+        super().__init__(host='kapi.kakao.com', 
+                        url='/v2/api/talk/memo/default/send',
+                        secure=True)
+        self.token = token
+
+    def emit(self, record):
+        try:
+            import requests
+            url = f"https://{self.host}{self.url}"
+            header = {"Content-type":"application/x-www-form-urlencoded",'Authorization': f'Bearer {self.token}'}
+            data = self.mapLogRecord(record)
+            res = requests.post(url, data=data, headers = header)
+    
+        except Exception:
+            self.handleError(record)
+
+    def mapLogRecord(self, record):
+        if self.formatter is None:  # Formatter가 설정되지 않은 경우
+            text = record.msg
+        else:
+            text = self.formatter.format(record)
+
+        return {"template_object":'{"object_type": "text",  "text": "'+text+'",  "link": {"web_url": "http://103.22.220.149:55555", "mobile_web_url": "http://103.22.220.149:55555" },  "button_title": "바로 확인" }'}
 
 def set_logger():
     logger = logging.getLogger()
@@ -37,7 +65,13 @@ def set_logger():
     mail_handler.setLevel(logging.ERROR)
     mail_handler.setFormatter(formatter)
 
+    kakao_handler = KakaoHandler(KAKAO_TOKEN)
+    kakao_handler.setLevel(logging.ERROR)
+    kakao_handler.setFormatter(formatter) 
+    
     logger.addHandler(stream_handler)
     logger.addHandler(file_handler)
+    logger.addHandler(kakao_handler)
     logger.addHandler(mail_handler)
+    
     return logger

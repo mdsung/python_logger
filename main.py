@@ -4,3 +4,4 @@ logger = set_logger()
 
 logger.info("Hello World")
 logger.error("error")
+logger.debug("debug")
